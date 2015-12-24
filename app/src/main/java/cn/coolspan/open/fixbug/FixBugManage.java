@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.math.BigInteger;
+import java.security.MessageDigest;
 
 import dalvik.system.DexClassLoader;
 import dalvik.system.PathClassLoader;
@@ -50,7 +52,7 @@ public class FixBugManage {
                 || !oldVersionCode.equalsIgnoreCase(versionCode)) {
             this.initPatchsDir();// 初始化补丁文件目录
             this.clearPaths();// 清楚所有的补丁文件
-            sharedPreferences.edit().putString("versionCode", versionCode)
+            sharedPreferences.edit().clear().putString("versionCode", versionCode)
                     .commit();// 存储版本号
         } else {
             this.loadPatchs();// 加载已经添加的补丁文件(.jar)
@@ -144,17 +146,25 @@ public class FixBugManage {
         BufferedInputStream bis = null;
         OutputStream dexWriter = null;
         try {
+            MessageDigest digests = MessageDigest.getInstance("MD5");
+
             bis = new BufferedInputStream(new FileInputStream(inFile));
             dexWriter = new BufferedOutputStream(new FileOutputStream(outFile));
             byte[] buf = new byte[BUF_SIZE];
             int len;
             while ((len = bis.read(buf, 0, BUF_SIZE)) > 0) {
+                digests.update(buf, 0, len);
                 dexWriter.write(buf, 0, len);
             }
             dexWriter.close();
             bis.close();
+            BigInteger bi = new BigInteger(1, digests.digest());
+            String result = bi.toString(16);
+
+            File toFile = new File(outFile.getParentFile(), result + ".jar");
+            outFile.renameTo(toFile);
             return true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             if (dexWriter != null) {
                 try {
                     dexWriter.close();
