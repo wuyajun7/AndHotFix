@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 19
     buildToolsVersion "23.0.1"
 
     defaultConfig {
         applicationId "cn.coolspan.open.fixbug"
-        minSdkVersion 15
+        minSdkVersion 9
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
