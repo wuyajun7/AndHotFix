@@ -182,6 +182,7 @@ public class FixBugManage {
             return false;
         }
     }
+
     public static void patch(Context context, String patchDexFile, String patchClassName) {
         if (patchDexFile != null && new File(patchDexFile).exists()) {
             try {
@@ -190,7 +191,6 @@ public class FixBugManage {
                 } else if (hasDexClassLoader()) {
                     injectAboveEqualApiLevel14(context, patchDexFile, patchClassName);
                 } else {
-
                     injectBelowApiLevel14(context, patchDexFile, patchClassName);
 
                 }
@@ -216,6 +216,7 @@ public class FixBugManage {
             return false;
         }
     }
+
     private static void injectInAliyunOs(Context context, String patchDexFile, String patchClassName)
             throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException,
             InstantiationException, NoSuchFieldException {
@@ -223,10 +224,10 @@ public class FixBugManage {
         String replaceAll = new File(patchDexFile).getName().replaceAll("\\.[a-zA-Z0-9]+", ".lex");
         Class cls = Class.forName("dalvik.system.LexClassLoader");
         Object newInstance =
-                cls.getConstructor(new Class[] {String.class, String.class, String.class, ClassLoader.class}).newInstance(
-                        new Object[] {context.getDir("dex", 0).getAbsolutePath() + File.separator + replaceAll,
+                cls.getConstructor(new Class[]{String.class, String.class, String.class, ClassLoader.class}).newInstance(
+                        new Object[]{context.getDir("dex", 0).getAbsolutePath() + File.separator + replaceAll,
                                 context.getDir("dex", 0).getAbsolutePath(), patchDexFile, obj});
-        cls.getMethod("loadClass", new Class[] {String.class}).invoke(newInstance, new Object[] {patchClassName});
+        cls.getMethod("loadClass", new Class[]{String.class}).invoke(newInstance, new Object[]{patchClassName});
         setField(obj, PathClassLoader.class, "mPaths",
                 appendArray(getField(obj, PathClassLoader.class, "mPaths"), getField(newInstance, cls, "mRawDexPath")));
         setField(obj, PathClassLoader.class, "mFiles",

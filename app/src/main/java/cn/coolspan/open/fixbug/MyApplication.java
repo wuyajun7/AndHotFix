@@ -9,7 +9,15 @@ public class MyApplication extends Application {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		this.fixBugManage = new FixBugManage(this);
-		this.fixBugManage.init("1.0");
+		try {
+			this.fixBugManage = new FixBugManage(this);
+			this.fixBugManage.init("1.0");
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 }
