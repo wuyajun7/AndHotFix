@@ -28,7 +28,14 @@ public class MainActivity extends Activity {
                 MyApplication myApplication = (MyApplication) getApplication();
                 File patch = new File(
                         Environment.getExternalStorageDirectory(), "patch.jar");
-                myApplication.fixBugManage.addPatch(patch.getAbsolutePath());
+                if (patch.exists()) {
+                    myApplication.fixBugManage.addPatch(patch.getAbsolutePath());
+                    Toast.makeText(MainActivity.this, "文件存在",
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, "文件不存在",
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         });
         findViewById(R.id.button2).setOnClickListener(new OnClickListener() {
