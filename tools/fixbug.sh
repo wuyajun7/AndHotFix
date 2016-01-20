@@ -18,4 +18,4 @@ while [ -h "$PRG" ] ; do
 done
 PRGDIR=`dirname "$PRG"`
 
-java -Xms512m -Xmx1024m -jar $PRGDIR/fixbuglib.jar "$@"
+java -Xms512m -Xmx1024m -jar $PRGDIR/fixbugtool.jar "$@"

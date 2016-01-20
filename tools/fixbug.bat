@@ -7,4 +7,4 @@ REM
 REM 	http://gitlab.alibaba-inc.com/groups/euler/CloudFix
 REM
 
-java -Xms512m -Xmx1024m -jar "%~dp0fixbuglib.jar"  %*
+java -Xms512m -Xmx1024m -jar "%~dp0fixbugtool.jar"  %*
