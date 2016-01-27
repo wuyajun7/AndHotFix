@@ -1,4 +1,4 @@
-package com.open.mynuwa;
+package cn.coolspan.open.fixbug;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 
@@ -19,11 +20,11 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
- * FixBugManage 2015-12-22 下午9:59:28
+ * FixBugManage2 2015-12-22 下午9:59:28
  *
  * @author 乔晓松 965266509@qq.com
  */
-public class FixBugManage {
+public class FixBugManage2 {
 
     private Context context;
 
@@ -32,7 +33,7 @@ public class FixBugManage {
     private File patchs;
     private File patchsOptFile;
 
-    public FixBugManage(Context context) {
+    public FixBugManage2(Context context) {
         this.context = context;
         this.patchs = new File(this.context.getFilesDir(), "patchs");// 存放补丁文件
         this.patchsOptFile = new File(this.context.getFilesDir(), "patchsopt");// 存放预处理补丁文件压缩处理后的dex文件
@@ -184,19 +185,19 @@ public class FixBugManage {
     }
 
     public static void patch(Context context, String patchDexFile, String patchClassName) {
-        if (patchDexFile != null && new File(patchDexFile).exists()) {
-            try {
-                if (hasLexClassLoader()) {
-                    injectInAliyunOs(context, patchDexFile, patchClassName);
-                } else if (hasDexClassLoader()) {
-                    injectAboveEqualApiLevel14(context, patchDexFile, patchClassName);
-                } else {
-                    injectBelowApiLevel14(context, patchDexFile, patchClassName);
-
-                }
-            } catch (Throwable th) {
-            }
-        }
+//        if (patchDexFile != null && new File(patchDexFile).exists()) {
+//            try {
+//                if (hasLexClassLoader()) {
+//                    injectInAliyunOs(context, patchDexFile, patchClassName);
+//                } else if (hasDexClassLoader()) {
+//                    injectAboveEqualApiLevel14(context, patchDexFile, patchClassName);
+//                } else {
+//                    injectBelowApiLevel14(context, patchDexFile, patchClassName);
+//
+//                }
+//            } catch (Throwable th) {
+//            }
+//        }
     }
 
     private static boolean hasLexClassLoader() {
@@ -246,26 +247,26 @@ public class FixBugManage {
      */
     public static void injectDexBelowApiLevel14(String dexPath, String defaultDexOptPath) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
 
-        PathClassLoader obj = (PathClassLoader) context.getClassLoader();
-
-        DexClassLoader dexClassLoader =
-                new DexClassLoader(dexPath, defaultDexOptPath, dexPath, context.getClassLoader());
-
-        setField(obj, PathClassLoader.class, "mPaths",
-                appendArray(getField(obj, PathClassLoader.class, "mPaths"),
-                        getField(dexClassLoader, DexClassLoader.class, "mRawDexPath")
-                ));
-        setField(obj, PathClassLoader.class, "mFiles",
-                combineArray(getField(dexClassLoader, DexClassLoader.class, "mFiles"),
-                        getField(obj, PathClassLoader.class, "mFiles")));
-
-        setField(obj, PathClassLoader.class, "mZips",
-                combineArray(getField(dexClassLoader, DexClassLoader.class, "mZips"),
-                        getField(obj, PathClassLoader.class, "mZips")));
-
-        setField(obj, PathClassLoader.class, "mDexs",
-                combineArray(getField(dexClassLoader, DexClassLoader.class, "mDexs"),
-                        getField(obj, PathClassLoader.class, "mDexs")));
+//        PathClassLoader obj = (PathClassLoader) context.getClassLoader();
+//
+//        DexClassLoader dexClassLoader =
+//                new DexClassLoader(dexPath, defaultDexOptPath, dexPath, context.getClassLoader());
+//
+//        setField(obj, PathClassLoader.class, "mPaths",
+//                appendArray(getField(obj, PathClassLoader.class, "mPaths"),
+//                        getField(dexClassLoader, DexClassLoader.class, "mRawDexPath")
+//                ));
+//        setField(obj, PathClassLoader.class, "mFiles",
+//                combineArray(getField(dexClassLoader, DexClassLoader.class, "mFiles"),
+//                        getField(obj, PathClassLoader.class, "mFiles")));
+//
+//        setField(obj, PathClassLoader.class, "mZips",
+//                combineArray(getField(dexClassLoader, DexClassLoader.class, "mZips"),
+//                        getField(obj, PathClassLoader.class, "mZips")));
+//
+//        setField(obj, PathClassLoader.class, "mDexs",
+//                combineArray(getField(dexClassLoader, DexClassLoader.class, "mDexs"),
+//                        getField(obj, PathClassLoader.class, "mDexs")));
     }
 
     /**
@@ -290,7 +291,7 @@ public class FixBugManage {
     }
 
     private static PathClassLoader getPathClassLoader() {
-        PathClassLoader pathClassLoader = (PathClassLoader) FixBugManage.class
+        PathClassLoader pathClassLoader = (PathClassLoader) FixBugManage2.class
                 .getClassLoader();// 获取类加载器
         return pathClassLoader;
     }

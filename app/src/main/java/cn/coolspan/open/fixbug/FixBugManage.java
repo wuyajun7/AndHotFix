@@ -4,11 +4,13 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 
@@ -26,6 +28,8 @@ import android.util.Log;
  */
 public class FixBugManage {
 
+    private final static String TAG = "FixBugManage";
+
     /**
      * 上下文
      */
@@ -34,22 +38,32 @@ public class FixBugManage {
     /**
      * 读取缓存大小
      */
-    private static final int BUF_SIZE = 512;
+    private final static int BUF_SIZE = 512;
 
     /**
      * patch文件存放目录
      */
     private File patchs;
 
+    private final static String PatchsDir = "patchs";
+
     /**
      * patch文件优化过后dex存放目录
      */
     private File patchsOptFile;
 
+    private final static String PatchsOptDir = "patchsopt";
+
+    private final static String PatchSuffix = ".jar";
+
+    private final static String FixBug = "fixbug";
+
+    private final static String VersionCode = "versionCode";
+
     public FixBugManage(Context context) {
-        this.context = context;
-        this.patchs = new File(this.context.getFilesDir(), "patchs");// 存放补丁文件
-        this.patchsOptFile = new File(this.context.getFilesDir(), "patchsopt");// 存放预处理补丁文件压缩处理后的dex文件
+        this.context = context;//初始化上下文对象，进行获取别的操作
+        this.patchs = new File(this.context.getFilesDir(), PatchsDir);// 存放补丁文件
+        this.patchsOptFile = new File(this.context.getFilesDir(), PatchsOptDir);// 存放预处理补丁文件压缩处理后的dex文件
     }
 
     /**
@@ -57,32 +71,48 @@ public class FixBugManage {
      *
      * @param versionCode
      */
-    public void init(String versionCode) throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException {
-        SharedPreferences sharedPreferences = this.context
-                .getSharedPreferences("fixbug", Context.MODE_PRIVATE);
-        String oldVersionCode = sharedPreferences
-                .getString("versionCode", null);
-        if (oldVersionCode == null
-                || !oldVersionCode.equalsIgnoreCase(versionCode)) {
-            this.initPatchsDir();// 初始化补丁文件目录
-            this.clearPaths();// 清楚所有的补丁文件
-            sharedPreferences.edit().clear().putString("versionCode", versionCode)
-                    .commit();// 存储版本号
-        } else {
-            this.loadPatchs();// 加载已经添加的补丁文件(.jar)
+    public void init(String versionCode) throws FixBugException {
+        try {
+            SharedPreferences sharedPreferences = this.context
+                    .getSharedPreferences(FixBug, Context.MODE_PRIVATE);
+            String oldVersionCode = sharedPreferences
+                    .getString(VersionCode, null);
+            if (oldVersionCode == null
+                    || !oldVersionCode.equalsIgnoreCase(versionCode)) {
+                this.initPatchsDir();// 初始化补丁文件目录
+                this.clearPaths();// 清楚所有的补丁文件
+                sharedPreferences.edit().clear().putString(VersionCode, versionCode)
+                        .commit();// 存储版本号
+            } else {
+                this.loadPatchs();// 加载已经添加的补丁文件(.jar)
+            }
+        } catch (IllegalAccessException e) {
+            throw new FixBugException("IllegalAccessException", e);
+        } catch (NoSuchFieldException e) {
+            throw new FixBugException("NoSuchFieldException", e);
+        } catch (ClassNotFoundException e) {
+            throw new FixBugException("ClassNotFoundException", e);
+        } catch (NoSuchMethodException e) {
+            throw new FixBugException("NoSuchMethodException", e);
+        } catch (InvocationTargetException e) {
+            throw new FixBugException("InvocationTargetException", e);
+        } catch (InstantiationException e) {
+            throw new FixBugException("InstantiationException", e);
+        } catch (Exception e) {
+            throw new FixBugException(e);
         }
     }
 
     /**
      * 读取补丁文件夹并加载
      */
-    private void loadPatchs() throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException {
+    private void loadPatchs() throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException {
         if (patchs.exists() && patchs.isDirectory()) {// 判断文件是否存在并判断是否是文件夹
             File patchFiles[] = patchs.listFiles();// 获取文件夹下的所有的文件
             for (int i = 0; i < patchFiles.length; i++) {
-                if (patchFiles[i].getName().lastIndexOf(".jar") == patchFiles[i]
+                if (patchFiles[i].getName().lastIndexOf(PatchSuffix) == patchFiles[i]
                         .getName().length() - 4) {// 仅处理.jar文件
-                    this.loadPatch(patchFiles[i].getAbsolutePath());// 加载jar文件
+                    this.loadPatch(patchFiles[i].getAbsolutePath(), patchFiles[i].getName());// 加载jar文件
                 }
             }
         } else {
@@ -107,10 +137,11 @@ public class FixBugManage {
      *
      * @param patchPath
      */
-    private void loadPatch(String patchPath) throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException {
+    private void loadPatch(String patchPath, String fileName) throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException, NoSuchMethodException, InstantiationException, InvocationTargetException {
         if (hasLexClassLoader()) {//判断是否是AliyunOS系统
             log("hasLexClassLoader");
             //TODO AliyunOS系统的处理
+            injectInAliyunOs(context, patchPath, patchsOptFile.getAbsolutePath(), fileName);
         } else if (hasDexClassLoader()) {//判断是否是Api是否>=14
             log("hasDexClassLoader");
             injectDexAtFirst(patchPath, patchsOptFile.getAbsolutePath());// 读取jar文件中dex内容
@@ -170,23 +201,75 @@ public class FixBugManage {
                         getField(obj, PathClassLoader.class, "mDexs")));
     }
 
+    /**
+     * log输出
+     *
+     * @param msg
+     */
     private static void log(String msg) {
-        Log.e("FixBugManage", msg);
+        Log.e(TAG, msg);
     }
 
+    private static void injectInAliyunOs(Context context, String patchDexFile, String dexOptPatch, String patchName)
+            throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException,
+            InstantiationException, NoSuchFieldException {
+
+        PathClassLoader obj = (PathClassLoader) context.getClassLoader();
+        String replaceAll = new File(patchDexFile).getName().replaceAll("\\.[a-zA-Z0-9]+", ".lex");
+        Class cls = Class.forName("dalvik.system.LexClassLoader");
+
+        Object newInstance =
+                cls.getConstructor(new Class[]{String.class, String.class, String.class, ClassLoader.class}).newInstance(
+                        new Object[]{dexOptPatch + File.separator + patchName,
+                                dexOptPatch, patchDexFile, obj});
+
+        Object newInstance2 =
+                cls.getConstructor(new Class[]{String.class, String.class, String.class, ClassLoader.class}).newInstance(
+                        new Object[]{context.getDir("dex", 0).getAbsolutePath() + File.separator + replaceAll,
+                                context.getDir("dex", 0).getAbsolutePath(), patchDexFile, obj});
+
+//        cls.getMethod("loadClass", new Class[]{String.class}).invoke(newInstance, new Object[]{patchClassName});
+
+        setField(obj, PathClassLoader.class, "mPaths",
+                appendArray(getField(obj, PathClassLoader.class, "mPaths"), getField(newInstance, cls, "mRawDexPath")));
+        setField(obj, PathClassLoader.class, "mFiles",
+                combineArray(getField(obj, PathClassLoader.class, "mFiles"), getField(newInstance, cls, "mFiles")));
+        setField(obj, PathClassLoader.class, "mZips",
+                combineArray(getField(obj, PathClassLoader.class, "mZips"), getField(newInstance, cls, "mZips")));
+        setField(obj, PathClassLoader.class, "mLexs",
+                combineArray(getField(obj, PathClassLoader.class, "mLexs"), getField(newInstance, cls, "mDexs")));
+    }
 
     /**
      * patch所在文件目录
      *
      * @param patchPath
      */
-    public void addPatch(String patchPath) throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException {
-        File inFile = new File(patchPath);//输入文件
-        File outFile = new File(patchs, inFile.getName() + "_" + System.currentTimeMillis());//输出文件
-        this.copyFile(outFile, inFile);//复制文件到patch文件中
-        this.loadPatch(patchPath);//加载补丁文件
+    public void addPatch(String patchPath) throws FixBugException {
+        try {
+            File inFile = new File(patchPath);//输入文件
+            if (inFile != null && !inFile.exists()) {
+                throw new FixBugException("FileNotFoundException", new FileNotFoundException("file path:" + patchPath));
+            }
+            File outFile = new File(patchs, inFile.getName() + "_" + System.currentTimeMillis());//输出文件
+            File md5File = this.copyFile(outFile, inFile);//复制文件到patch文件中
+            this.loadPatch(md5File.getAbsolutePath(), md5File.getName());//加载补丁文件
+        } catch (IllegalAccessException e) {
+            throw new FixBugException("IllegalAccessException", e);
+        } catch (NoSuchFieldException e) {
+            throw new FixBugException("NoSuchFieldException", e);
+        } catch (ClassNotFoundException e) {
+            throw new FixBugException("ClassNotFoundException", e);
+        } catch (NoSuchMethodException e) {
+            throw new FixBugException("NoSuchMethodException", e);
+        } catch (InstantiationException e) {
+            throw new FixBugException("InstantiationException", e);
+        } catch (InvocationTargetException e) {
+            throw new FixBugException("InvocationTargetException", e);
+        } catch (Exception e) {
+            throw new FixBugException(e);
+        }
     }
-
 
     /**
      * 移除所有的patch文件
@@ -199,10 +282,10 @@ public class FixBugManage {
      * 清除所有的补丁文件
      */
     private void clearPaths() {
-        if (patchs.exists() && patchs.isDirectory()) {
+        if (patchs != null && patchs.exists() && patchs.isDirectory()) {
             File patchFiles[] = patchs.listFiles();
             for (int i = 0; i < patchFiles.length; i++) {
-                if (patchFiles[i].getName().lastIndexOf(".jar") == patchFiles[i]
+                if (patchFiles[i].getName().lastIndexOf(PatchSuffix) == patchFiles[i]
                         .getName().length() - 4) {
                     patchFiles[i].delete();//删除补丁文件
                 }
@@ -255,7 +338,6 @@ public class FixBugManage {
         }
         return newInstance;
     }
-
 
     /**
      * 此方法是合并2个数组，把补丁dex中的内容放到数组最前，达到修复bug的目的
@@ -358,7 +440,7 @@ public class FixBugManage {
      * @param inFile
      * @return
      */
-    private boolean copyFile(File outFile, File inFile) {
+    private File copyFile(File outFile, File inFile) {
         BufferedInputStream bis = null;
         OutputStream dexWriter = null;
         try {
@@ -377,9 +459,9 @@ public class FixBugManage {
             BigInteger bi = new BigInteger(1, digests.digest());
             String result = bi.toString(16);
 
-            File toFile = new File(outFile.getParentFile(), result + ".jar");//使用文件的md5值做为patch文件名称
+            File toFile = new File(outFile.getParentFile(), result + PatchSuffix);//使用文件的md5值做为patch文件名称
             outFile.renameTo(toFile);
-            return true;
+            return toFile;
         } catch (Exception e) {
             if (dexWriter != null) {
                 try {
@@ -395,7 +477,7 @@ public class FixBugManage {
                     ioe.printStackTrace();
                 }
             }
-            return false;
+            return null;
         }
     }
 }
