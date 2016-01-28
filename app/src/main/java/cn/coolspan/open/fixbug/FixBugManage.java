@@ -108,7 +108,7 @@ public class FixBugManage {
      */
     private void loadPatchs() throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException {
         if (patchs.exists() && patchs.isDirectory()) {// 判断文件是否存在并判断是否是文件夹
-            File patchFiles[] = patchs.listFiles();// 获取文件夹下的所有的文件
+            File[] patchFiles = patchs.listFiles();// 获取文件夹下的所有的文件
             for (int i = 0; i < patchFiles.length; i++) {
                 if (patchFiles[i].getName().lastIndexOf(PatchSuffix) == patchFiles[i]
                         .getName().length() - 4) {// 仅处理.jar文件
