@@ -1,28 +1,17 @@
-package cn.coolspan.open.fixbug;
+package cn.coolspan.open.fixbug.lib;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.util.Log;
+
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.math.BigInteger;
-import java.security.MessageDigest;
 
 import dalvik.system.DexClassLoader;
 import dalvik.system.PathClassLoader;
-
-import android.Manifest;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.support.v4.app.ActivityCompat;
-import android.util.Log;
 
 /**
  * FixBugManage 2015-12-22 下午9:59:28
@@ -31,6 +20,9 @@ import android.util.Log;
  */
 public class FixBugManage {
 
+    /**
+     * Class tag
+     */
     private final static String TAG = "FixBugManage";
 
     /**
@@ -39,15 +31,13 @@ public class FixBugManage {
     private Context context;
 
     /**
-     * 读取缓存大小
-     */
-    private final static int BUF_SIZE = 512;
-
-    /**
      * patch文件存放目录
      */
     private File patchs;
 
+    /**
+     * Patch存放目录
+     */
     private final static String PatchsDir = "patchs";
 
     /**
@@ -55,14 +45,31 @@ public class FixBugManage {
      */
     private File patchsOptFile;
 
+    /**
+     * Patch文件优化后的存放目录
+     */
     private final static String PatchsOptDir = "patchsopt";
 
+    /**
+     * 补丁后缀
+     */
     private final static String PatchSuffix = ".jar";
 
+    /**
+     * 关于FixBug信息存储的Key
+     */
     private final static String FixBug = "fixbug";
 
+    /**
+     * FixBug的版本号
+     */
     private final static String VersionCode = "versionCode";
 
+    /**
+     * 初始化上下文，同时也初始化存储补丁的目录
+     *
+     * @param context
+     */
     public FixBugManage(Context context) {
         this.context = context;//初始化上下文对象，进行获取别的操作
         this.patchs = new File(this.context.getFilesDir(), PatchsDir);// 存放补丁文件
@@ -169,7 +176,7 @@ public class FixBugManage {
         DexClassLoader dexClassLoader = new DexClassLoader(dexPath,
                 defaultDexOptPath, dexPath, getPathClassLoader());// 把dexPath文件补丁处理后放入到defaultDexOptPath目录中
         Object baseDexElements = getDexElements(getPathList(getPathClassLoader()));// 获取当面应用Dex的内容
-         Object newDexElements = getDexElements(getPathList(dexClassLoader));// 获取补丁文件Dex的内容
+        Object newDexElements = getDexElements(getPathList(dexClassLoader));// 获取补丁文件Dex的内容
         Object allDexElements = combineArray(newDexElements, baseDexElements);// 把当前apk的dex和补丁文件的dex进行合并
         Object pathList = getPathList(getPathClassLoader());// 获取当前的patchList对象
         setField(pathList, pathList.getClass(), "dexElements", allDexElements);// 利用反射设置对象的值
@@ -213,6 +220,20 @@ public class FixBugManage {
         Log.e(TAG, msg);
     }
 
+    /**
+     * 对AliyunOs系统的热修复处理
+     *
+     * @param context
+     * @param patchDexFile
+     * @param dexOptPatch
+     * @param patchName
+     * @throws ClassNotFoundException
+     * @throws NoSuchMethodException
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
+     * @throws InstantiationException
+     * @throws NoSuchFieldException
+     */
     private static void injectInAliyunOs(Context context, String patchDexFile, String dexOptPatch, String patchName)
             throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException,
             InstantiationException, NoSuchFieldException {
@@ -255,7 +276,7 @@ public class FixBugManage {
                 throw new FixBugException("FileNotFoundException", new FileNotFoundException("file path:" + patchPath));
             }
             File outFile = new File(patchs, inFile.getName() + "_" + System.currentTimeMillis());//输出文件
-            File md5File = this.copyFile(outFile, inFile);//复制文件到patch文件中
+            File md5File = FileUtils.copyFile(outFile, inFile, PatchSuffix);//复制文件到patch文件中
             this.loadPatch(md5File.getAbsolutePath(), md5File.getName());//加载补丁文件
         } catch (IllegalAccessException e) {
             throw new FixBugException("IllegalAccessException", e);
@@ -434,53 +455,5 @@ public class FixBugManage {
         Field localField = cl.getDeclaredField(field);
         localField.setAccessible(true);// 强制反射
         localField.set(obj, value);// 设置值
-    }
-
-    /**
-     * 复制文件从inFile到outFile
-     *
-     * @param outFile
-     * @param inFile
-     * @return
-     */
-    private File copyFile(File outFile, File inFile) {
-        BufferedInputStream bis = null;
-        OutputStream dexWriter = null;
-        try {
-            MessageDigest digests = MessageDigest.getInstance("MD5");
-
-            bis = new BufferedInputStream(new FileInputStream(inFile));
-            dexWriter = new BufferedOutputStream(new FileOutputStream(outFile));
-            byte[] buf = new byte[BUF_SIZE];
-            int len;
-            while ((len = bis.read(buf, 0, BUF_SIZE)) > 0) {
-                digests.update(buf, 0, len);
-                dexWriter.write(buf, 0, len);
-            }
-            dexWriter.close();
-            bis.close();
-            BigInteger bi = new BigInteger(1, digests.digest());
-            String result = bi.toString(16);
-
-            File toFile = new File(outFile.getParentFile(), result + PatchSuffix);//使用文件的md5值做为patch文件名称
-            outFile.renameTo(toFile);
-            return toFile;
-        } catch (Exception e) {
-            if (dexWriter != null) {
-                try {
-                    dexWriter.close();
-                } catch (IOException ioe) {
-                    ioe.printStackTrace();
-                }
-            }
-            if (bis != null) {
-                try {
-                    bis.close();
-                } catch (IOException ioe) {
-                    ioe.printStackTrace();
-                }
-            }
-            return null;
-        }
     }
 }

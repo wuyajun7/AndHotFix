@@ -2,6 +2,9 @@ package cn.coolspan.open.fixbug;
 
 import android.app.Application;
 
+import cn.coolspan.open.fixbug.lib.FixBugException;
+import cn.coolspan.open.fixbug.lib.FixBugManage;
+
 /**
  * MainActivity 2015-12-22 下午10:30:57
  *

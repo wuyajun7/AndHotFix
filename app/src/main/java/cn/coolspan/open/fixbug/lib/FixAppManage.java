@@ -1,4 +1,4 @@
-package cn.coolspan.open.fixbug;
+package cn.coolspan.open.fixbug.lib;
 
 import android.content.Context;
 import android.content.SharedPreferences;
