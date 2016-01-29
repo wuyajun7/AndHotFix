@@ -17,8 +17,11 @@ import java.security.MessageDigest;
 import dalvik.system.DexClassLoader;
 import dalvik.system.PathClassLoader;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 /**
@@ -166,7 +169,7 @@ public class FixBugManage {
         DexClassLoader dexClassLoader = new DexClassLoader(dexPath,
                 defaultDexOptPath, dexPath, getPathClassLoader());// 把dexPath文件补丁处理后放入到defaultDexOptPath目录中
         Object baseDexElements = getDexElements(getPathList(getPathClassLoader()));// 获取当面应用Dex的内容
-        Object newDexElements = getDexElements(getPathList(dexClassLoader));// 获取补丁文件Dex的内容
+         Object newDexElements = getDexElements(getPathList(dexClassLoader));// 获取补丁文件Dex的内容
         Object allDexElements = combineArray(newDexElements, baseDexElements);// 把当前apk的dex和补丁文件的dex进行合并
         Object pathList = getPathList(getPathClassLoader());// 获取当前的patchList对象
         setField(pathList, pathList.getClass(), "dexElements", allDexElements);// 利用反射设置对象的值
