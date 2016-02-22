@@ -7,7 +7,7 @@ FixBug
 
 原理
 ---
-1.参考 腾讯bugly博客：[【新技能get】让App像Web一样发布新版本](http://bugly.qq.com/blog/?p=781 "FixBug")
+1.参考 腾讯bugly博客：[【新技能get】让App像Web一样发布新版本](http://bugly.qq.com/bbs/forum.php?mod=viewthread&tid=16&extra=page%3D1 "FixBug")
 
 2.Google提供的Android分包原理
 
